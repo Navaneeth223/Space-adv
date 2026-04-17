@@ -363,30 +363,57 @@ class Player extends Entity {
     ctx.fillStyle = radGrad;
     ctx.beginPath(); ctx.arc(0, 0, 40, 0, Math.PI*2); ctx.fill();
 
-    if (window.ASSETS && window.ASSETS.banana_player) {
-       ctx.drawImage(window.ASSETS.banana_player, -30, -35, 60, 70);
-    } else {
-       // Body
-       ctx.fillStyle = '#0a0a1a';
-       ctx.fillRect(-14, -24, 28, 48);
+    // Procedural Nano Banana Character
+    const isMoving = Math.abs(this.vx) > 10;
+    const isJumping = !this.onGround;
+    const runCycle = isMoving && this.onGround ? Date.now() / 150 : 0;
+    
+    // Banana Body
+    ctx.fillStyle = '#FFDD00';
+    ctx.beginPath();
+    ctx.moveTo(-10, -20);
+    ctx.quadraticCurveTo(15, -15, 10, 20);
+    ctx.quadraticCurveTo(0, 25, -10, 20);
+    ctx.quadraticCurveTo(-5, 0, -14, -20);
+    ctx.fill();
+    
+    // Nanosuit Armor Plates
+    ctx.fillStyle = '#222222';
+    ctx.fillRect(-6, 0, 16, 8); // Mid section belt
+    ctx.fillRect(-2, -22, 10, 6); // Top cap
 
-       // Hood Eye
-       ctx.fillStyle = '#AA00FF';
-       ctx.fillRect(4, -16, 2, 2);
+    // Visor
+    ctx.fillStyle = '#00FFFF';
+    ctx.fillRect(4, -14, 8, 4);
 
-       // Cloak wave
-       ctx.fillStyle = '#1a0a2a';
-       ctx.beginPath();
-       ctx.moveTo(-18, -10);
-       ctx.lineTo(18, -10);
-       ctx.lineTo(18, 24);
-       // wave bottom
-       for(let i=18; i>=-18; i-=4){
-          ctx.lineTo(i, 24 + Math.sin(this.cloakPhase + i)*4);
-       }
-       ctx.closePath();
-       ctx.fill();
+    // Legs Animation
+    ctx.strokeStyle = '#444444';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    let leg1y = 20, leg2y = 20;
+    let leg1x = 0, leg2x = 6;
+    if (isJumping) {
+        leg1y = 16; leg2y = 24;
+        leg1x = -4; leg2x = 2;
+    } else if (isMoving) {
+        leg1x = 0 + Math.sin(runCycle) * 8;
+        leg2x = 6 + Math.sin(runCycle + Math.PI) * 8;
+        leg1y = 20 - Math.abs(Math.sin(runCycle)*4);
+        leg2y = 20 - Math.abs(Math.sin(runCycle + Math.PI)*4);
     }
+    ctx.moveTo(2, 18); ctx.lineTo(leg1x, leg1y); // Leg 1
+    ctx.moveTo(8, 16); ctx.lineTo(leg2x, leg2y); // Leg 2
+    ctx.stroke();
+
+    // Arms
+    let armX = 0; let armY = 4;
+    if(isMoving && this.onGround) {
+       armX = Math.sin(runCycle + Math.PI) * 6; // Swing opposite of leg1
+    }
+    ctx.strokeStyle = '#222222';
+    ctx.beginPath();
+    ctx.moveTo(0, -2); ctx.lineTo(armX + 4, armY);
+    ctx.stroke();
     
     // Charged visual
     if(this.chargeTimer > 0) {

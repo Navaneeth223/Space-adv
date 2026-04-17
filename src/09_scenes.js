@@ -72,34 +72,73 @@ class MainMenuScene extends Scene {
             this.engine.changeState(GAME_STATE.GAMEPLAY); // Jump right in
          } else if (action === 'SETTINGS') {
             this.engine.changeState(GAME_STATE.SETTINGS);
+         } else if (action === 'CREDITS') {
+            this.engine.changeState(GAME_STATE.CREDITS);
+         } else if (action === 'QUIT') {
+            document.body.innerHTML = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;background:black;'><h1 style='color:white;font-family:Arial;'>SYSTEM OFFLINE</h1></div>";
          }
    }
 }
 
 class SettingsScene extends Scene {
-   enter() { this.engine.ui.settingsSelection = 0; }
+   enter() { 
+      this.engine.ui.settingsSelection = 0; 
+      this.items = [
+         { name: 'Master Volume', key: 'masterVolume', options: [0, 20, 40, 60, 80, 100] },
+         { name: 'Music', key: 'musicEnabled', options: [true, false] },
+         { name: 'SFX', key: 'sfxEnabled', options: [true, false] },
+         { name: 'Screen Shake', key: 'screenShake', options: ['ON', 'OFF'] }
+      ];
+   }
    update(dt) {
       const input = this.engine.input;
       
-      // Simple mockup
-      if(input.isJustPressed('Enter') || input.isJustPressed('Escape')) {
+      if(input.isJustPressed('Escape')) {
          this.engine.audio.sfx_uiBack();
          this.engine.saveManager.save();
-         this.engine.particles.updateSettings(this.engine.saveManager.data.settings.particleQuality);
          this.engine.audio.updateVolumes();
-         
-         // return to prev 
-         if(this.engine.prevState === GAME_STATE.PAUSED) this.engine.changeState(GAME_STATE.PAUSED);
-         else this.engine.changeState(GAME_STATE.MAIN_MENU);
+         this.engine.changeState(this.engine.prevState === GAME_STATE.PAUSED ? GAME_STATE.PAUSED : GAME_STATE.MAIN_MENU);
+      }
+      if(input.isJustPressed('ArrowDown')) this.engine.ui.settingsSelection = (this.engine.ui.settingsSelection+1)%this.items.length;
+      if(input.isJustPressed('ArrowUp')) this.engine.ui.settingsSelection = (this.engine.ui.settingsSelection-1+this.items.length)%this.items.length;
+      
+      let item = this.items[this.engine.ui.settingsSelection];
+      let currentVal = this.engine.saveManager.data.settings[item.key];
+      let idx = item.options.indexOf(currentVal);
+      if(idx === -1) idx = 0;
+      
+      if(input.isJustPressed('ArrowRight') || input.isJustPressed('Enter')) {
+         let nIdx = (idx + 1) % item.options.length;
+         this.engine.saveManager.data.settings[item.key] = item.options[nIdx];
+         this.engine.audio.sfx_uiSelect();
+      }
+      if(input.isJustPressed('ArrowLeft')) {
+         let nIdx = (idx - 1 + item.options.length) % item.options.length;
+         this.engine.saveManager.data.settings[item.key] = item.options[nIdx];
+         this.engine.audio.sfx_uiSelect();
       }
    }
    draw(ctx) {
-      ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,CONSTANTS.WIDTH,CONSTANTS.HEIGHT);
-      ctx.fillStyle = '#00FFFF'; ctx.font = '40px Arial'; ctx.textAlign='center';
-      ctx.fillText("SETTINGS", CONSTANTS.WIDTH/2, 100);
-      ctx.fillStyle = '#FFFFFF'; ctx.font = '20px Arial';
-      ctx.fillText("Press ENTER or ESCAPE to go back", CONSTANTS.WIDTH/2, 200);
-      // More robust UI sliders would go here...
+      ctx.fillStyle = 'rgba(10, 10, 26, 0.9)'; ctx.fillRect(0,0,CONSTANTS.WIDTH,CONSTANTS.HEIGHT);
+      ctx.fillStyle = '#00FFFF'; ctx.font = 'bold 50px Arial'; ctx.textAlign='center';
+      ctx.fillText("SYSTEM CONFIG", CONSTANTS.WIDTH/2, 120);
+      
+      for(let i=0; i<this.items.length; i++) {
+         let item = this.items[i];
+         let isSel = i === this.engine.ui.settingsSelection;
+         ctx.fillStyle = isSel ? '#00FFFF' : '#FFFFFF';
+         ctx.font = (isSel ? 'bold 32px' : '28px') + ' Arial';
+         ctx.textAlign = 'right';
+         ctx.fillText(item.name, CONSTANTS.WIDTH/2 - 20, 250 + i*60);
+         
+         ctx.textAlign = 'left';
+         let valStr = this.engine.saveManager.data.settings[item.key];
+         if(typeof valStr === 'boolean') valStr = valStr ? 'ON' : 'OFF';
+         ctx.fillText((isSel ? '< ' : '') + valStr + (isSel ? ' >' : ''), CONSTANTS.WIDTH/2 + 20, 250 + i*60);
+      }
+      
+      ctx.fillStyle = '#888888'; ctx.font = '20px Arial'; ctx.textAlign='center';
+      ctx.fillText("Press ESCAPE to return", CONSTANTS.WIDTH/2, CONSTANTS.HEIGHT - 80);
    }
 }
 
@@ -224,22 +263,46 @@ class GameOverScene extends Scene {
    enter() { this.timer = 0; }
    update(dt) {
       this.timer += dt;
-      if(this.timer > 1.5) {
+      if(this.timer > 0.3) {
          if(this.engine.input.isJustPressed('Enter')) {
-            // Simulate selecting retry checkpoint
             this.engine.loadZoneMode = 'CONTINUE';
             this.engine.changeState(GAME_STATE.GAMEPLAY);
          }
       }
    }
    draw(ctx) {
-      ctx.fillStyle = '#000000'; ctx.fillRect(0,0,CONSTANTS.WIDTH,CONSTANTS.HEIGHT);
-      if(this.timer > 1.5) {
-         ctx.fillStyle = '#FF0000'; ctx.textAlign='center'; ctx.font = 'bold 80px Arial';
-         ctx.fillText("SYSTEM FAILURE", CONSTANTS.WIDTH/2, 200);
+      ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0,0,CONSTANTS.WIDTH,CONSTANTS.HEIGHT);
+      ctx.fillStyle = '#FF0000'; ctx.textAlign='center';
+      let pop = Math.min(1.0, this.timer*3) * 80;
+      ctx.font = `bold ${pop}px Arial`;
+      ctx.fillText("SYSTEM FAILURE", CONSTANTS.WIDTH/2, 200);
+      if(this.timer > 0.5) {
          ctx.fillStyle = '#FFFFFF'; ctx.font = '24px Arial';
          ctx.fillText("PRESS ENTER TO RETRY FROM CHECKPOINT", CONSTANTS.WIDTH/2, 500);
       }
+   }
+}
+
+class CreditsScene extends Scene {
+   enter() { this.scroll = CONSTANTS.HEIGHT; }
+   update(dt) {
+      this.scroll -= 50 * dt;
+      if(this.engine.input.isJustPressed('Escape') || this.scroll < -400) {
+         this.engine.changeState(GAME_STATE.MAIN_MENU);
+      }
+   }
+   draw(ctx) {
+      ctx.fillStyle = '#000000'; ctx.fillRect(0,0,CONSTANTS.WIDTH,CONSTANTS.HEIGHT);
+      ctx.fillStyle = '#00FFFF'; ctx.font = 'bold 50px Arial'; ctx.textAlign='center';
+      ctx.fillText("GRAVSHIFT: VOID PROTOCOL", CONSTANTS.WIDTH/2, this.scroll);
+      ctx.fillStyle = '#FFFFFF'; ctx.font = '30px Arial';
+      ctx.fillText("Executive Director: AI Assistant", CONSTANTS.WIDTH/2, this.scroll + 100);
+      ctx.fillText("Art Direction: Nano Banana Subroutines", CONSTANTS.WIDTH/2, this.scroll + 150);
+      ctx.fillText("Programming: Deepmind Antigravity", CONSTANTS.WIDTH/2, this.scroll + 200);
+      ctx.fillText("Testing & QA: The User", CONSTANTS.WIDTH/2, this.scroll + 300);
+      
+      ctx.fillStyle = '#555555'; ctx.font = '20px Arial';
+      ctx.fillText("Press ESCAPE to exit", CONSTANTS.WIDTH/2, CONSTANTS.HEIGHT - 50);
    }
 }
 
