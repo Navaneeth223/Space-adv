@@ -213,7 +213,8 @@ class GameScene extends Scene {
       e.camera.update(dt, e.player, e.world.width, e.world.height, e.saveManager.data.settings);
 
       // Boss trigger
-      if(e.world.activeBoss && tx > 125 && e.state !== GAME_STATE.BOSS_INTRO && e.world.activeBoss.phase === 1 && e.world.activeBoss.hp === e.world.activeBoss.maxHp) {
+      if(e.world.activeBoss && tx > 125 && !e.world.activeBoss.introPlayed && e.state !== GAME_STATE.BOSS_INTRO && e.world.activeBoss.phase === 1 && e.world.activeBoss.hp === e.world.activeBoss.maxHp) {
+         e.world.activeBoss.introPlayed = true;
          e.changeState(GAME_STATE.BOSS_INTRO);
       }
    }
@@ -239,5 +240,14 @@ class GameOverScene extends Scene {
          ctx.fillStyle = '#FFFFFF'; ctx.font = '24px Arial';
          ctx.fillText("PRESS ENTER TO RETRY FROM CHECKPOINT", CONSTANTS.WIDTH/2, 500);
       }
+   }
+}
+
+class BossIntroScene extends Scene {
+   update(dt) {
+      const e = this.engine;
+      e.particles.update(dt, e.player.gravityFlipped);
+      e.particles.emitAmbient(e.world.zoneId, e.camera);
+      e.camera.update(dt, e.player, e.world.width, e.world.height, e.saveManager.data.settings);
    }
 }

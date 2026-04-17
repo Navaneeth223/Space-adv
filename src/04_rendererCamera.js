@@ -93,7 +93,8 @@ class Renderer {
   }
 
   render(engine) {
-    const { state, camera, world, player, entities, particles, ui, settings } = engine;
+    const { state, camera, world, player, entities, particles, ui } = engine;
+    const settings = engine.saveManager.data.settings;
     
     // Clear screen
     this.ctx.fillStyle = '#000000';

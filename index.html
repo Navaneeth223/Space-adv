@@ -1084,7 +1084,8 @@ class Renderer {
   }
 
   render(engine) {
-    const { state, camera, world, player, entities, particles, ui, settings } = engine;
+    const { state, camera, world, player, entities, particles, ui } = engine;
+    const settings = engine.saveManager.data.settings;
     
     // Clear screen
     this.ctx.fillStyle = '#000000';
@@ -1152,6 +1153,9 @@ class Renderer {
         state === GAME_STATE.VICTORY || state === GAME_STATE.CREDITS) {
       this.ctx.restore(); // Ensure no transforms for UI
       ui.drawMenu(this.ctx, engine);
+      if (engine.scenes[state] && engine.scenes[state].draw) {
+        engine.scenes[state].draw(this.ctx);
+      }
     }
   }
 }
@@ -2140,31 +2144,119 @@ class World {
   }
 
   _generatePlatformsAndHazards() {
-    // We add arbitrary platforms
-    for (let i = 0; i < 40; i++) {
-       let px = 10 + Math.floor(Math.random() * 110);
-       let py = 5 + Math.floor(Math.random() * 12);
-       let w = 3 + Math.floor(Math.random() * 6);
-       
-       for(let x=px; x<px+w; x++) {
-          let tileType = 1; // solid
-          if(this.zoneId === 3 && Math.random() > 0.5) tileType = 5; // ice
-          if(Math.random() > 0.8) tileType = 7; // one-way
-          if(Math.random() > 0.9) tileType = 8; // destructible
-          this.setTile(x, py, tileType);
-          
-          if(Math.random() > 0.8) {
-             // Spikes
-             if(Math.random() > 0.5) {
-                if(this.getTile(x, py-1) === 0) this.setTile(x, py-1, 2); // spike up
-             } else {
-                if(this.getTile(x, py+1) === 0) this.setTile(x, py+1, 3); // spike down
-             }
-          }
-       }
+    // Generate different architectural styles based on zoneId
+    const ts = CONSTANTS.TILE_SIZE;
+    
+    if (this.zoneId === 1) {
+      // Zone 1: Docking Bay - Wide open platforms, easy introductory level
+      for (let i = 10; i < 110; i += 15) {
+         let width = 6 + Math.floor(Math.random() * 5);
+         let py = 15 - Math.floor(Math.random() * 4);
+         for(let x=i; x<i+width; x++) {
+            this.setTile(x, py, 1);
+            if(Math.random() > 0.8) this.setTile(x, py-1, 2); // Occasional spike
+         }
+         // Add some mid-air platforms
+         let midWidth = 4 + Math.floor(Math.random() * 3);
+         let midY = 8 + Math.floor(Math.random() * 4);
+         for(let x=i; x<i+midWidth; x++) {
+            this.setTile(x + 5, midY, 7); // One-way platforms
+         }
+      }
+    } 
+    else if (this.zoneId === 2) {
+      // Zone 2: Reactor Core - Hazardous bottom, lots of jumping required
+      
+      // Bottom layer is mostly energy drain or spikes, requiring high ground/gravity usage
+      for(let x=10; x<120; x++) {
+         if(Math.random() > 0.3 && this.getTile(x, 20) === 0) {
+            this.setTile(x, 20, 2); // Spikes on floor
+         }
+      }
+
+      for (let i = 10; i < 115; i += 10) {
+         let w = 2 + Math.floor(Math.random()*3); // Narrow platforms
+         let py = 12 + Math.floor(Math.random()*6); // Random altitudes
+         for(let x=i; x<i+w; x++) {
+            this.setTile(x, py, 1);
+         }
+         // High ceiling platforms
+         let cw = 3 + Math.floor(Math.random()*3);
+         let cy = 4 + Math.floor(Math.random()*4);
+         for(let x=i+4; x<i+4+cw; x++) {
+            this.setTile(x, cy, 1);
+            // Spikes on bottom of high platforms
+            if(Math.random() > 0.5) this.setTile(x, cy+1, 3);
+         }
+      }
+    } 
+    else if (this.zoneId === 3) {
+      // Zone 3: Cryo Vaults - Enclosed ice corridors
+      for (let i = 10; i < 110; i += 20) {
+         // Create tunnel/corridor walls
+         for(let y=4; y<18; y++) {
+            if(y > 7 && y < 14) continue; // Gap
+            this.setTile(i, y, 5); // Ice wall
+         }
+         
+         // Inner platforms
+         for(let x=i+4; x<i+16; x++) {
+            if (x % 3 === 0) continue; // break up the floors
+            this.setTile(x, 7, 5); // Ice floor top
+            this.setTile(x, 14, 5); // Ice floor bottom
+         }
+
+         // Add some breakable shortcuts
+         this.setTile(i, 10, 8);
+         this.setTile(i, 11, 8);
+      }
+    }
+    else if (this.zoneId === 4) {
+      // Zone 4: Neural Network - Vertical pillars and data bridges
+      for (let i = 20; i < 120; i += 12) {
+         let isPillar = Math.random() > 0.5;
+         if (isPillar) {
+            let gapY = 8 + Math.floor(Math.random() * 6);
+            for(let y=1; y<21; y++) {
+               if(y > gapY && y < gapY + 5) continue; // Gap to pass through
+               this.setTile(i, y, 1);
+               this.setTile(i+1, y, 1); // 2-wide pillar
+               
+               // Data hazards
+               if(y === gapY || y === gapY+5) {
+                 this.setTile(i, gapY, 3); // Down spike
+                 this.setTile(i, gapY+5, 2); // Up spike
+               }
+            }
+         } else {
+            // Bridges
+            let py = 4 + Math.floor(Math.random() * 12);
+            for(let x=i-5; x<i+8; x++) {
+               this.setTile(x, py, 7); // Data bridges
+            }
+         }
+      }
+    }
+    else {
+      // Zone 5: NEXUS Throne - Chaos and symmetry
+      for (let i = 15; i < 120; i += 25) {
+         // Create diamond shapes
+         let cy = 10;
+         for(let o=0; o<5; o++) {
+            this.setTile(i + o, cy + o, 1);
+            this.setTile(i + o, cy - o, 1);
+            this.setTile(i - o, cy + o, 1);
+            this.setTile(i - o, cy - o, 1);
+         }
+         // Floaters
+         for(let x=i+10; x<i+15; x++) {
+            this.setTile(x, 5, 8); // Breakable
+            this.setTile(x, 15, 8); 
+         }
+      }
     }
     
-    // Checkpoints
+    // Checkpoints (Always valid ground)
     this.setTile(60, this.height-2, 9);
     this.setTile(120, this.height-2, 9);
   }
@@ -2956,7 +3048,8 @@ class GameScene extends Scene {
       e.camera.update(dt, e.player, e.world.width, e.world.height, e.saveManager.data.settings);
 
       // Boss trigger
-      if(e.world.activeBoss && tx > 125 && e.state !== GAME_STATE.BOSS_INTRO && e.world.activeBoss.phase === 1 && e.world.activeBoss.hp === e.world.activeBoss.maxHp) {
+      if(e.world.activeBoss && tx > 125 && !e.world.activeBoss.introPlayed && e.state !== GAME_STATE.BOSS_INTRO && e.world.activeBoss.phase === 1 && e.world.activeBoss.hp === e.world.activeBoss.maxHp) {
+         e.world.activeBoss.introPlayed = true;
          e.changeState(GAME_STATE.BOSS_INTRO);
       }
    }
@@ -2982,6 +3075,15 @@ class GameOverScene extends Scene {
          ctx.fillStyle = '#FFFFFF'; ctx.font = '24px Arial';
          ctx.fillText("PRESS ENTER TO RETRY FROM CHECKPOINT", CONSTANTS.WIDTH/2, 500);
       }
+   }
+}
+
+class BossIntroScene extends Scene {
+   update(dt) {
+      const e = this.engine;
+      e.particles.update(dt, e.player.gravityFlipped);
+      e.particles.emitAmbient(e.world.zoneId, e.camera);
+      e.camera.update(dt, e.player, e.world.width, e.world.height, e.saveManager.data.settings);
    }
 }
 
@@ -3013,6 +3115,7 @@ class GameEngine {
      this.scenes[GAME_STATE.SETTINGS] = new SettingsScene(this);
      this.scenes[GAME_STATE.CUTSCENE] = new CutsceneScene(this);
      this.scenes[GAME_STATE.GAMEPLAY] = new GameScene(this);
+     this.scenes[GAME_STATE.BOSS_INTRO] = new BossIntroScene(this);
      this.scenes[GAME_STATE.GAME_OVER] = new GameOverScene(this);
 
      this.lastTime = 0;

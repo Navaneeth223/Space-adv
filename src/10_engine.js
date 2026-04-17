@@ -26,6 +26,7 @@ class GameEngine {
      this.scenes[GAME_STATE.SETTINGS] = new SettingsScene(this);
      this.scenes[GAME_STATE.CUTSCENE] = new CutsceneScene(this);
      this.scenes[GAME_STATE.GAMEPLAY] = new GameScene(this);
+     this.scenes[GAME_STATE.BOSS_INTRO] = new BossIntroScene(this);
      this.scenes[GAME_STATE.GAME_OVER] = new GameOverScene(this);
 
      this.lastTime = 0;
