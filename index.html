@@ -1478,11 +1478,12 @@ class CollisionEngine {
     // World bounds clamp
     if (entity.x < 0) { entity.x = 0; entity.vx = 0; }
     if (entity.y < 0) { entity.y = 0; entity.vy = 0; entity.onGround = false; }
-    // Max bounds handled by tile collisions on edges ideally, but we can hard cap
+    
+    // Max bounds handled by tile collisions on edges ideally
     const maxW = world.width * CONSTANTS.TILE_SIZE;
     const maxH = world.height * CONSTANTS.TILE_SIZE;
     if (entity.x + entity.width > maxW) { entity.x = maxW - entity.width; entity.vx = 0; }
-    if (entity.y + entity.height > maxH) { entity.y = maxH - entity.height; entity.vy = 0; entity.onGround = false; }
+    // Allow Y to fall infinitely into the abyss so the death trigger can catch it!
 
     entity.updateStateAfterCollision();
   }
@@ -2703,10 +2704,21 @@ class DroneEnemy extends Enemy {
      if(CollisionEngine.checkAABB(this, engine.player)) engine.player.takeDamage(10, Math.sign(engine.player.x-this.x), engine);
   }
   drawObj(ctx) {
-     ctx.fillStyle = this.color;
-     ctx.beginPath(); ctx.arc(this.x+10, this.y+10, 10, 0, Math.PI*2); ctx.fill();
-     ctx.fillStyle = '#F00';
-     ctx.beginPath(); ctx.arc(this.x+10, this.y+10, 3, 0, Math.PI*2); ctx.fill();
+     // Procedural Hover Ring
+     ctx.fillStyle = '#FF2244';
+     ctx.fillRect(this.x + 8, this.y + 4, 16, 16);
+     
+     // Drone Shell
+     ctx.fillStyle = '#222222';
+     ctx.beginPath();
+     ctx.arc(this.x + 10, this.y + 10, 14, 0, Math.PI*2);
+     ctx.fill();
+     
+     // Drone core eye
+     ctx.fillStyle = (this.state === 'CHASE') ? '#FF0000' : '#4444FF';
+     ctx.beginPath();
+     ctx.arc(this.x + 10, this.y + 10, 6 + Math.sin(Date.now()/100)*2, 0, Math.PI*2);
+     ctx.fill();
   }
 }
 
@@ -2773,9 +2785,27 @@ class HunterEnemy extends Enemy {
       }
    }
    drawObj(ctx) {
-      ctx.fillStyle = this.color;
-      ctx.fillRect(this.x, this.y, this.width, this.height);
-      ctx.fillStyle = '#FFF'; ctx.fillRect(this.x + (this.vx>0?14:2), this.y+8, 4, 2);
+     ctx.save();
+     ctx.translate(this.x + 10, this.y + 19);
+     if(this.gravityFlipped) ctx.scale(1, -1);
+     
+     // Alien Stalker body
+     ctx.fillStyle = '#440022';
+     ctx.beginPath();
+     ctx.moveTo(-10, 19);
+     ctx.lineTo(-5, -9);
+     ctx.lineTo(5, -9);
+     ctx.lineTo(10, 19);
+     ctx.fill();
+
+     // Pincers / Claws
+     ctx.fillStyle = '#FF1133';
+     ctx.beginPath();
+     ctx.arc(-5, -9, 4, 0, Math.PI);
+     ctx.arc(5, -9, 4, 0, Math.PI);
+     ctx.fill();
+
+     ctx.restore();
    }
 }
 
@@ -2799,9 +2829,24 @@ class TurretEnemy extends Enemy {
       }
    }
    drawObj(ctx) {
-      ctx.fillStyle = this.color;
-      ctx.fillRect(this.x, this.y, this.width, this.height);
-      ctx.fillStyle = '#F00'; ctx.beginPath(); ctx.arc(this.x+16, this.y+10, 4, 0, Math.PI*2); ctx.fill();
+     // Base mount
+     ctx.fillStyle = '#111111';
+     ctx.fillRect(this.x, this.y + 4, 32, 16);
+
+     // Energy core
+     ctx.fillStyle = '#11AAFF';
+     ctx.fillRect(this.x + 10, this.y + 4, 12, 12);
+     
+     // Alien overgrowth vines
+     ctx.strokeStyle = '#00FF44'; ctx.lineWidth = 2;
+     ctx.beginPath();
+     ctx.moveTo(this.x + 16, this.y + 20); 
+     ctx.quadraticCurveTo(this.x + 4, this.y + 10, this.x + 8, this.y);
+     ctx.stroke();
+
+     // Gun barrel
+     ctx.fillStyle = '#555555';
+     ctx.fillRect(this.x + 12, this.y - 4, 8, 12);
    }
 }
 

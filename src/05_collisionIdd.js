@@ -48,11 +48,12 @@ class CollisionEngine {
     // World bounds clamp
     if (entity.x < 0) { entity.x = 0; entity.vx = 0; }
     if (entity.y < 0) { entity.y = 0; entity.vy = 0; entity.onGround = false; }
-    // Max bounds handled by tile collisions on edges ideally, but we can hard cap
+    
+    // Max bounds handled by tile collisions on edges ideally
     const maxW = world.width * CONSTANTS.TILE_SIZE;
     const maxH = world.height * CONSTANTS.TILE_SIZE;
     if (entity.x + entity.width > maxW) { entity.x = maxW - entity.width; entity.vx = 0; }
-    if (entity.y + entity.height > maxH) { entity.y = maxH - entity.height; entity.vy = 0; entity.onGround = false; }
+    // Allow Y to fall infinitely into the abyss so the death trigger can catch it!
 
     entity.updateStateAfterCollision();
   }
