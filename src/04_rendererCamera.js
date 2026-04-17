@@ -161,6 +161,9 @@ class Renderer {
         state === GAME_STATE.VICTORY || state === GAME_STATE.CREDITS) {
       this.ctx.restore(); // Ensure no transforms for UI
       ui.drawMenu(this.ctx, engine);
+      if (engine.scenes[state] && engine.scenes[state].draw) {
+        engine.scenes[state].draw(this.ctx);
+      }
     }
   }
 }
