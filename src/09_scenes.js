@@ -35,9 +35,34 @@ class MainMenuScene extends Scene {
          else if (input.isJustPressed('ArrowUp')) ui.menuSelection = 0;
       }
 
+      // Mouse hover and click
+      for(let i=0; i<ui.mainMenuItems.length; i++) {
+         const y = 350 + i * 50;
+         if(input.mouse.x > CONSTANTS.WIDTH/2 - 150 && input.mouse.x < CONSTANTS.WIDTH/2 + 150 &&
+            input.mouse.y > y - 25 && input.mouse.y < y + 25) {
+            
+            // Avoid selecting greyed out continue
+            if(i === 1 && !localStorage.getItem('gravshift_save')) continue;
+
+            if(ui.menuSelection !== i) {
+               ui.menuSelection = i;
+               this.engine.audio.sfx_uiSelect();
+            }
+
+            if(input.isMouseJustPressed()) {
+               this._executeMenu(ui.mainMenuItems[i]);
+               return;
+            }
+         }
+      }
+
       if(input.isJustPressed('Enter')) {
+         this._executeMenu(ui.mainMenuItems[ui.menuSelection]);
+      }
+   }
+
+   _executeMenu(action) {
          this.engine.audio.sfx_uiSelect();
-         let action = ui.mainMenuItems[ui.menuSelection];
          if(action === 'NEW GAME') {
             this.engine.saveManager.resetProgress();
             this.engine.loadZoneMode = 'NEW';
@@ -48,7 +73,6 @@ class MainMenuScene extends Scene {
          } else if (action === 'SETTINGS') {
             this.engine.changeState(GAME_STATE.SETTINGS);
          }
-      }
    }
 }
 
