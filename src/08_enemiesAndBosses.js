@@ -224,6 +224,7 @@ class DroneEnemy extends Enemy {
         let dx = engine.player.x - this.x;
         let dy = engine.player.y - this.y;
         let dist = Math.sqrt(dx*dx+dy*dy);
+        if (dist === 0) { dx = 1; dist = 1; } // Prevent NaN Division
         if(dist > 50) {
            this.x += (dx/dist) * this.speed * spdMod * dt;
            this.y += (dy/dist) * this.speed * spdMod * dt;
@@ -329,6 +330,7 @@ class TurretEnemy extends Enemy {
             let dx = engine.player.x - this.x;
             let dy = engine.player.y - this.y;
             let len = Math.sqrt(dx*dx+dy*dy);
+            if (len === 0) { dx = 1; len = 1; } // Prevent NaN Division
             engine.spawnProjectile(false, this.x+16, this.y+10, (dx/len)*300, (dy/len)*300, this.dmg, 3.0, false);
          }
          else this.stateTimer -= dt;

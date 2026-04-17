@@ -21,9 +21,22 @@ foreach ($file in $jsFiles) {
     }
 }
 
+$assetContent = "<script>`nwindow.ASSETS = {};`n"
+if (Test-Path "src\assets") {
+    $images = Get-ChildItem -Path "src\assets" -Filter "*.png"
+    foreach ($img in $images) {
+        $bytes = [System.IO.File]::ReadAllBytes($img.FullName)
+        $base64 = [System.Convert]::ToBase64String($bytes)
+        $name = $img.BaseName
+        $assetContent += "window.ASSETS['$name'] = new Image();`n"
+        $assetContent += "window.ASSETS['$name'].src = 'data:image/png;base64,$base64';`n"
+    }
+}
+$assetContent += "</script>`n"
+
 if (Test-Path "src\index.template.html") {
     $html = Get-Content "src\index.template.html" -Raw
-    $html = $html -replace '<!-- GAME_SCRIPT -->', "<script>`n$jsContent`n</script>"
+    $html = $html -replace '<!-- GAME_SCRIPT -->', "$assetContent`n<script>`n$jsContent`n</script>"
     Set-Content -Path .\index.html -Value $html
     Write-Host "Build complete: index.html"
 } else {

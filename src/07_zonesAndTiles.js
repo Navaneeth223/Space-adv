@@ -335,6 +335,12 @@ class World {
            ctx.fillRect(offset + i*200, 100, 50, CONSTANTS.HEIGHT);
         }
      } else if (this.zoneId === 2) {
+        if (window.ASSETS && window.ASSETS.banana_bg) {
+            let pX = -(camera.x * 0.1) % CONSTANTS.WIDTH;
+            ctx.drawImage(window.ASSETS.banana_bg, pX, 0, CONSTANTS.WIDTH, CONSTANTS.HEIGHT);
+            ctx.drawImage(window.ASSETS.banana_bg, pX + CONSTANTS.WIDTH, 0, CONSTANTS.WIDTH, CONSTANTS.HEIGHT);
+            return;
+        }
         ctx.fillStyle = '#441100';
         let offset = -(camera.x * 0.4) % 300;
         for(let i=0; i<10; i++) {

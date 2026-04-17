@@ -89,6 +89,17 @@ class Player extends Entity {
 
     this._handleInput(dt, engine);
     this._updateEnergy(dt);
+
+    if (this.gravityFlipped) {
+       this.energy -= 10 * dt; // Drain constantly
+       if (this.energy <= 0) {
+          this.energy = 0;
+          this.gravityFlipped = false;
+          this.vy = 0;
+          engine.particles.emitGravityFlip(this.x + this.width/2, this.y + this.height/2, false);
+          engine.audio.sfx_gravityFlip();
+       }
+    }
     
     this.auraPhase += dt * Math.PI; // 2s cycle approx
     this.cloakPhase += dt * 5;
@@ -204,9 +215,7 @@ class Player extends Entity {
   }
 
   _doFlip(engine) {
-    const cost = this.hasUpgrade('Gravity Mastery') ? 8 : 15;
     if (this.energy > 0) {
-      this.energy = Math.max(0, this.energy - cost);
       this.gravityFlipped = !this.gravityFlipped;
       this.vy = 0;
       engine.particles.emitGravityFlip(this.x + this.width/2, this.y + this.height/2, this.gravityFlipped);
@@ -293,6 +302,7 @@ class Player extends Entity {
   }
 
   _updateEnergy(dt) {
+    if(this.gravityFlipped) return; // Halt regeneration while draining
     const isRegenSlow = this.dashTimer > 0 || this.chargeTimer > 0;
     const rate = (isRegenSlow ? 6 : 12) + (this.hasUpgrade('Energy Regen+') ? 5 : 0);
     this.energy = Math.min(this.maxEnergy, this.energy + rate * dt);
@@ -353,26 +363,30 @@ class Player extends Entity {
     ctx.fillStyle = radGrad;
     ctx.beginPath(); ctx.arc(0, 0, 40, 0, Math.PI*2); ctx.fill();
 
-    // Body
-    ctx.fillStyle = '#0a0a1a';
-    ctx.fillRect(-14, -24, 28, 48);
+    if (window.ASSETS && window.ASSETS.banana_player) {
+       ctx.drawImage(window.ASSETS.banana_player, -30, -35, 60, 70);
+    } else {
+       // Body
+       ctx.fillStyle = '#0a0a1a';
+       ctx.fillRect(-14, -24, 28, 48);
 
-    // Hood Eye
-    ctx.fillStyle = '#AA00FF';
-    ctx.fillRect(4, -16, 2, 2);
+       // Hood Eye
+       ctx.fillStyle = '#AA00FF';
+       ctx.fillRect(4, -16, 2, 2);
 
-    // Cloak wave
-    ctx.fillStyle = '#1a0a2a';
-    ctx.beginPath();
-    ctx.moveTo(-18, -10);
-    ctx.lineTo(18, -10);
-    ctx.lineTo(18, 24);
-    // wave bottom
-    for(let i=18; i>=-18; i-=4){
-       ctx.lineTo(i, 24 + Math.sin(this.cloakPhase + i)*4);
+       // Cloak wave
+       ctx.fillStyle = '#1a0a2a';
+       ctx.beginPath();
+       ctx.moveTo(-18, -10);
+       ctx.lineTo(18, -10);
+       ctx.lineTo(18, 24);
+       // wave bottom
+       for(let i=18; i>=-18; i-=4){
+          ctx.lineTo(i, 24 + Math.sin(this.cloakPhase + i)*4);
+       }
+       ctx.closePath();
+       ctx.fill();
     }
-    ctx.closePath();
-    ctx.fill();
     
     // Charged visual
     if(this.chargeTimer > 0) {
