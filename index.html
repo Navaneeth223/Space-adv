@@ -1,9 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>GRAVSHIFT: VOID PROTOCOL</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><polygon points='16,2 20,12 30,12 22,19 25,30 16,23 7,30 10,19 2,12 12,12' fill='%2300FFFF'/></svg>">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
         
@@ -2603,7 +2604,18 @@ class Crystal extends Collectible {
   }
   draw(ctx) {
      ctx.fillStyle = this.color;
-     engine.particles._drawStar(ctx, this.x+8, this.y+8, 6, 8, 4);
+     // Draw star inline â€” engine is not passed to draw(ctx), only ctx is
+      const cx = this.x + 8, cy = this.y + 8;
+      const outerR = 8, innerR = 4, pts = 5;
+      ctx.beginPath();
+      for (let i = 0; i < pts * 2; i++) {
+         const angle = (i * Math.PI) / pts - Math.PI / 2;
+         const r = i % 2 === 0 ? outerR : innerR;
+         if (i === 0) ctx.moveTo(cx + r * Math.cos(angle), cy + r * Math.sin(angle));
+         else ctx.lineTo(cx + r * Math.cos(angle), cy + r * Math.sin(angle));
+      }
+      ctx.closePath();
+      ctx.fill();
   }
 }
 
