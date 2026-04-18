@@ -24,7 +24,7 @@ class ParticleSystem {
     this.pool = Array.from({ length: 500 }, () => new Particle());
     this.quality = saveData.settings.particleQuality;
     this.multiplier = this.quality === 'HIGH' ? 1.0 : this.quality === 'MEDIUM' ? 0.6 : this.quality === 'LOW' ? 0.3 : 0;
-    
+    this._nextFree = 0; // O(1) free-slot pointer
     // Non-particle explosions
     this.rings = []; 
   }
@@ -35,7 +35,16 @@ class ParticleSystem {
   }
 
   _getParticle() {
-    return this.pool.find(p => !p.active);
+    // O(1) circular scan instead of O(n) find
+    const len = this.pool.length;
+    for (let i = 0; i < len; i++) {
+      const idx = (this._nextFree + i) % len;
+      if (!this.pool[idx].active) {
+        this._nextFree = (idx + 1) % len;
+        return this.pool[idx];
+      }
+    }
+    return null; // pool full
   }
 
   update(dt, currentGravityFlipped) {

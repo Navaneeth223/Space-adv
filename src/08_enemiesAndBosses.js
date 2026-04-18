@@ -29,9 +29,9 @@ class Projectile extends Entity {
 
      // Emit trail
      if(this.isPlayerProj && this.pierceCount > 0) {
-        engine.particles.emitExplosion(this.x+15, this.y+15, 5, 0.1); 
+        if(Math.random() > 0.7) engine.particles.emitBulletHit(this.x+15, this.y+15);
      } else {
-        if(Math.random() > 0.5) engine.particles.emitBulletHit(this.x+6, this.y+2);
+        if(Math.random() > 0.6) engine.particles.emitBulletHit(this.x+6, this.y+2);
      }
 
      // Tile collision
@@ -388,10 +388,12 @@ class TurretEnemy extends Enemy {
 }
 
 class UpgradeTerminal extends Entity {
-   constructor(x, y) { super(x, y, 32, 64); this.isGravityImmune = false;}
+   constructor(x, y) { super(x, y, 32, 64); this.isGravityImmune = false; this._cooldown = 0; }
    update(dt, engine) {
+      if(this._cooldown > 0) { this._cooldown -= dt; return; }
       if(CollisionEngine.checkAABB_expanded(this, engine.player, 0)) {
          engine.triggerUpgradeMenu();
+         this._cooldown = 2.0; // Only trigger once every 2 seconds
       }
    }
    draw(ctx) {

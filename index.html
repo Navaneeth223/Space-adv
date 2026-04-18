@@ -659,7 +659,7 @@ class ParticleSystem {
     this.pool = Array.from({ length: 500 }, () => new Particle());
     this.quality = saveData.settings.particleQuality;
     this.multiplier = this.quality === 'HIGH' ? 1.0 : this.quality === 'MEDIUM' ? 0.6 : this.quality === 'LOW' ? 0.3 : 0;
-    
+    this._nextFree = 0; // O(1) free-slot pointer
     // Non-particle explosions
     this.rings = []; 
   }
@@ -670,7 +670,16 @@ class ParticleSystem {
   }
 
   _getParticle() {
-    return this.pool.find(p => !p.active);
+    // O(1) circular scan instead of O(n) find
+    const len = this.pool.length;
+    for (let i = 0; i < len; i++) {
+      const idx = (this._nextFree + i) % len;
+      if (!this.pool[idx].active) {
+        this._nextFree = (idx + 1) % len;
+        return this.pool[idx];
+      }
+    }
+    return null; // pool full
   }
 
   update(dt, currentGravityFlipped) {
@@ -2492,9 +2501,9 @@ class Projectile extends Entity {
 
      // Emit trail
      if(this.isPlayerProj && this.pierceCount > 0) {
-        engine.particles.emitExplosion(this.x+15, this.y+15, 5, 0.1); 
+        if(Math.random() > 0.7) engine.particles.emitBulletHit(this.x+15, this.y+15);
      } else {
-        if(Math.random() > 0.5) engine.particles.emitBulletHit(this.x+6, this.y+2);
+        if(Math.random() > 0.6) engine.particles.emitBulletHit(this.x+6, this.y+2);
      }
 
      // Tile collision
@@ -2851,10 +2860,12 @@ class TurretEnemy extends Enemy {
 }
 
 class UpgradeTerminal extends Entity {
-   constructor(x, y) { super(x, y, 32, 64); this.isGravityImmune = false;}
+   constructor(x, y) { super(x, y, 32, 64); this.isGravityImmune = false; this._cooldown = 0; }
    update(dt, engine) {
+      if(this._cooldown > 0) { this._cooldown -= dt; return; }
       if(CollisionEngine.checkAABB_expanded(this, engine.player, 0)) {
          engine.triggerUpgradeMenu();
+         this._cooldown = 2.0; // Only trigger once every 2 seconds
       }
    }
    draw(ctx) {
@@ -3142,9 +3153,10 @@ class GameScene extends Scene {
       // Update entities
       for(let i = e.entities.length-1; i>=0; i--) {
          let ent = e.entities[i];
+         if(ent.isDead) { e.entities.splice(i, 1); continue; } // Remove dead ASAP
          ent.update(dt, e);
          CollisionEngine.resolveTileCollisions(ent, e.world, dt);
-         if(ent.isDead && (ent.iframeTimer || 0) <= 0) {
+         if(ent.isDead) {
             e.entities.splice(i, 1);
          }
       }

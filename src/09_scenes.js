@@ -205,9 +205,10 @@ class GameScene extends Scene {
       // Update entities
       for(let i = e.entities.length-1; i>=0; i--) {
          let ent = e.entities[i];
+         if(ent.isDead) { e.entities.splice(i, 1); continue; } // Remove dead ASAP
          ent.update(dt, e);
          CollisionEngine.resolveTileCollisions(ent, e.world, dt);
-         if(ent.isDead && (ent.iframeTimer || 0) <= 0) {
+         if(ent.isDead) {
             e.entities.splice(i, 1);
          }
       }
